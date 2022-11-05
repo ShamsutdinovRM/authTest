@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"authTest/model"
+	"context"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -11,7 +14,7 @@ func CommonMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func JWTMiddleware(next http.Handler) http.Handler {
+func (b *Repos) JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
 		if header == "" {
@@ -25,12 +28,21 @@ func JWTMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err := ParseToken(headerParse[1])
+		username, err := ParseToken(headerParse[1])
 		if err != nil {
 			SendErr(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		//check redis cache
+		err = b.RedisRepository.CheckUser(model.Name{Username: username})
+		if err != nil {
+			log.Printf("Error, check user: %s", err)
+			SendErr(w, http.StatusUnauthorized, "Error, user Unauthorized")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "username", username)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

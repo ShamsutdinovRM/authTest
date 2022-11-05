@@ -17,7 +17,7 @@ type tokenClaims struct {
 }
 
 const (
-	tokenTTL   = 12 * time.Minute
+	tokenTTL   = 5 * time.Minute
 	signingKey = "signingKey"
 )
 

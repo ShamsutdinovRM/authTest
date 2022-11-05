@@ -4,6 +4,7 @@ import (
 	"authTest/model"
 	"authTest/pkg/repository"
 	"encoding/json"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"log"
@@ -11,7 +12,8 @@ import (
 )
 
 type Repos struct {
-	Repository repository.Operations
+	Repository      repository.Operations
+	RedisRepository repository.OperationsRedis
 }
 
 func (b *Repos) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -78,18 +80,47 @@ func (b *Repos) LogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	LogUser := model.LogUser{
+	logUser := model.LogUser{
 		Username: userDB.Username,
 		Token:    JWTToken,
 	}
 
-	SendOK(w, http.StatusOK, LogUser)
+	loginUser, err := b.RedisRepository.LoginUser(logUser)
+	if err != nil {
+		log.Printf("Error save data User: %s", err)
+		SendErr(w, http.StatusInternalServerError, "Error login to service")
+		return
+	}
+
+	SendOK(w, http.StatusOK, loginUser)
 }
 
 func (b *Repos) LogOut(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error read body: %s", err)
+		SendErr(w, http.StatusBadRequest, "Invalid field")
+		return
+	}
+	defer r.Body.Close()
 
+	var user model.Name
+	if err = json.Unmarshal(body, &user); err != nil {
+		log.Printf("Error unmarshal body: %s", err)
+		SendErr(w, http.StatusBadRequest, "Invalid field")
+		return
+	}
+
+	err = b.RedisRepository.LogoutUser(user)
+	if err != nil {
+		log.Printf("Error logout User: %s", err)
+		SendErr(w, http.StatusInternalServerError, "Error logout to service")
+		return
+	}
+
+	SendOK(w, http.StatusOK, "Goodbye")
 }
 
 func (b *Repos) Hello(w http.ResponseWriter, r *http.Request) {
-	SendOK(w, http.StatusOK, "Hello From Wrong Side Of Heaven")
+	SendOK(w, http.StatusOK, "Hello From Wrong Side Of Heaven "+fmt.Sprint(r.Context().Value("username")))
 }

@@ -33,15 +33,22 @@ func Run(path string) {
 	}
 	defer db.DB.Close()
 
-	hand := handler.Repos{Repository: db}
+	dbr := repository.NewRedisConnect()
+	//defer dbr.Conn.Close()
+
+	hand := handler.Repos{
+		Repository:      db,
+		RedisRepository: dbr,
+	}
 
 	r := mux.NewRouter()
 	r.Use(handler.CommonMiddleware)
 	r.HandleFunc("/signup", hand.SignUp)
 	r.HandleFunc("/login", hand.LogIn)
+	r.HandleFunc("/logout", hand.LogOut)
 
 	s := r.PathPrefix("/auth").Subrouter()
-	s.Use(handler.JWTMiddleware)
+	s.Use(hand.JWTMiddleware)
 	s.HandleFunc("/hello", hand.Hello)
 
 	port := viper.GetString("port")

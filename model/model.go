@@ -20,6 +20,10 @@ type LogUser struct {
 	Token    string `json:"token"`
 }
 
+type Name struct {
+	Username string `json:"username"`
+}
+
 type DefaultError struct {
 	Text string `json:"text"`
 }
