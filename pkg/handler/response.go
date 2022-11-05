@@ -96,22 +96,9 @@ func (b *Repos) LogIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Repos) LogOut(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("Error read body: %s", err)
-		SendErr(w, http.StatusBadRequest, "Invalid field")
-		return
-	}
-	defer r.Body.Close()
+	user := fmt.Sprint(r.Context().Value("username"))
 
-	var user model.Name
-	if err = json.Unmarshal(body, &user); err != nil {
-		log.Printf("Error unmarshal body: %s", err)
-		SendErr(w, http.StatusBadRequest, "Invalid field")
-		return
-	}
-
-	err = b.RedisRepository.LogoutUser(user)
+	err := b.RedisRepository.LogoutUser(model.Name{Username: user})
 	if err != nil {
 		log.Printf("Error logout User: %s", err)
 		SendErr(w, http.StatusInternalServerError, "Error logout to service")

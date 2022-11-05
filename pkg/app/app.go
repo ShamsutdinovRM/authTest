@@ -45,10 +45,10 @@ func Run(path string) {
 	r.Use(handler.CommonMiddleware)
 	r.HandleFunc("/signup", hand.SignUp)
 	r.HandleFunc("/login", hand.LogIn)
-	r.HandleFunc("/logout", hand.LogOut)
 
 	s := r.PathPrefix("/auth").Subrouter()
 	s.Use(hand.JWTMiddleware)
+	s.HandleFunc("/logout", hand.LogOut)
 	s.HandleFunc("/hello", hand.Hello)
 
 	port := viper.GetString("port")
